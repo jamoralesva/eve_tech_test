@@ -1,0 +1,2 @@
+
+- Voy a crear una API REST usando FastAPI porque es conocido. Sin embargo para un componente de verificación puede ser lento debido al procesamiento del requeest. Mas adelante puede migrarse a algo mas rápido como gRPC.
