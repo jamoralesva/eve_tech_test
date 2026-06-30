@@ -1,26 +1,34 @@
-from typing import Literal
+from typing import List, Literal
 
 from pydantic import BaseModel, Field
+
+# Intentamos ser agnosticos a REST o MCP
+class OperationContext(BaseModel):
+    uri: str | None = Field(None, description="URI del recurso, si este tiene asociada una URI")
+    params: dict | None = Field(None, description="Diccionario de parametros")
+    body:  dict | None = Field(None, description="Diccionario con un body (request/response)")
+    headers: dict | None = Field(None, description="Diccionario con headers. Acoplado al protocolo REST")
 
 class CandidateOperation(BaseModel):
     kind: Literal["outbound_request", "inbound_response"] | None = Field(
         None,
         description="Tipo de operación (outbound request, inbound response)"
     )
-    operation: str = Field(..., min_length=1, description="Identificador de la operación")
+    origin_id: str | None = Field(None, min_length=3, max_length=50, description="Origen que requiere hacer la operación")
+    resource_id: str | None = Field(None, min_length=3, max_length=50, description="Recurso sobre el cual se quiere hacer la operación")
+    context: OperationContext | None = Field(None, description="Contexto de la operación, si es un request o response")
 
 
 class PolicyContextBase(BaseModel):
     origin_id: str = Field(..., min_length=3, max_length=50, description="Origen. El agente/app/tool que requiere hacer la operación")
-    # TODO: prefiero usar un modelo para la definición de la politica, pero por simplicidad lo mantendré así.
-    policy: str | None = Field(None, description="Definición de la policy en lenguaje natural estructurado")
-    candidate_operation: CandidateOperation
+    policy: List[str] | None = Field(None, description="Definición de la policy estructurado")
+    candidate_operation: CandidateOperation = Field(..., description="Contexto de la operación candidata")
 
 class PolicyValidationRequest(PolicyContextBase):
     pass
 
 class PolicyValidationResponse(PolicyContextBase):
-    validation_id: int
+    validation_id: str = Field(..., min_length=1, max_length=50, description="Id de la ejecución de la validación")
     decision: Literal["ALLOW", "ALERT", "BLOCK"] | None = Field(
         None,
         description="Tipo de decisión tomada por el agente"

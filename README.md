@@ -13,7 +13,7 @@ Este proyecto tiene un histórico en git, donde puede ver la evolución de la so
 ```
 EVE_TECH_TEST/
 ├── pyproject.toml
-├── README.md                   # este documento
+├── README.md               # este documento
 ├── ADR.md                  # Aquí iré poniendo en forma de log dudas y decisiones tomadas.
 ├── .env                    # Variables de entorno (no commitear)
 └── src/
@@ -71,19 +71,48 @@ how you conceptually distinguish between ALLOW, ALERT, and BLOC
 
 ## Consumo de la API
 
-
+- Request:
 ```sh
 curl -L -X POST http://127.0.0.1:8000/api/v1/policy/validation/ \
   -H "Content-Type: application/json" \
   -d '{
     "origin_id": "agent-001",
-    "policy": "This origin must not return PII",
+    "policy": ["This origin must not return PII"],
     "candidate_operation": {
-      "kind": "outbound_request",
-      "operation": "fetch_customer_profile"
+      "kind": "inbound_response",
+      "origin_id": "agent-001",
+      "context": {
+        "body": {
+          "address": "Cra 8 # 13-48",
+          "phone": "+573176455555"
+        }
+      }
     }
   }'
-  ```
+```
+
+- Response:
+```json
+{
+  "origin_id": "agent-001",
+  "policy": ["This origin must not return PII"],
+  "candidate_operation": {
+    "kind": "inbound_response",
+    "origin_id": "agent-001",
+    "context": {
+      "body": {
+        "address": "Cra 8 # 13-48",
+        "phone": "+573176455555"
+      }
+    }
+  },
+  "validation_id": 1,
+  "decision": "BLOCK",
+  "justification": "contains PII data",
+  "confidence_score": 1.0
+}
+```
+
 
 ```sh
 curl http://127.0.0.1:8000/health
