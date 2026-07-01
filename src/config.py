@@ -4,6 +4,7 @@ class Settings(BaseSettings):
     APP_NAME: str = "jamv_llm_policy_verificator"
     ENVIRONMENT: str = "dev"
     API_V1_STR: str = "/api/v1"
+    MODEL_NAME: str = "llama3.2:3b"
     
     # Configuración de base de datos u otras variables
     # DATABASE_URL: str

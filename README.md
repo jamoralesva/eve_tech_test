@@ -39,6 +39,11 @@ Versión de Poetry usada: `Poetry (version 2.3.2)`
 `poetry env activate`
 `poetry install`
 
+- Instalar [Ollama](https://ollama.com/):
+
+- Descargar llama3.2: `ollama pull llama3.2:3b`
+- Ejecutar Ollama en background: `ollama serve > /dev/null 2>&1 &`
+
 ## Ejecución
 
 `poetry run uvicorn src.main:app --reload`

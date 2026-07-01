@@ -27,14 +27,17 @@ class PolicyContextBase(BaseModel):
 class PolicyValidationRequest(PolicyContextBase):
     pass
 
-class PolicyValidationResponse(PolicyContextBase):
-    validation_id: str = Field(..., min_length=1, max_length=50, description="Id de la ejecución de la validación")
+class LLMValidationResponse(BaseModel):
     decision: Literal["ALLOW", "ALERT", "BLOCK"] | None = Field(
         None,
         description="Tipo de decisión tomada por el agente"
     )
-    justification: str
+    justification: str = Field(..., min_length=3, max_length=500, description="Justificación de la decisión tomada por el agente")
     confidence_score: float = Field(..., ge=0, le=1)
+
+class PolicyValidationResponse(PolicyContextBase):
+    validation_id: str = Field(..., min_length=1, max_length=50, description="Id de la ejecución de la validación")
+    llm_validation_response: LLMValidationResponse = Field(..., description="Respuesta del LLM con la decisión de la validación de la policy")
     model_config = {
         "from_attributes": True # Reemplaza el antiguo 'orm_mode = True' en Pydantic v2
     }
