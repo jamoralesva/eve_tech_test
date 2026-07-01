@@ -1,7 +1,6 @@
 import ollama
 from ..schemas.policy_context import LLMValidationResponse, PolicyContextBase
-from .prompts.base import prompt_base_LLM_validation, prompt_system, prompt_base_pii
-
+from .prompts.base import prompt_system_security_template, all_prompts
 class LLMPolicyValidatorService:
     def __init__(self, model_name: str = "llama2"):
         self.model_name = model_name
@@ -9,18 +8,17 @@ class LLMPolicyValidatorService:
     def validate_policy(self, policy_context: PolicyContextBase) -> LLMValidationResponse:
         # Construir el prompt con el contexto de la política
         # TODO: Quizas sea buena idea dividir la validación en pequeños expertos. Ej: uno para PII, otro para validación de reglas, etc. y luego combinar las respuestas.
-        prompt = f"{prompt_base_LLM_validation}\n\nPolicy Context: {policy_context}\n\nPII Context: {prompt_base_pii}"
-
+        prompt = prompt_system_security_template.substitute(
+            {
+                "policy_context": policy_context.model_dump(),
+                **all_prompts
+            })
         # Llamar al modelo LLM usando Ollama
         response = ollama.chat(
             model=self.model_name,
             messages=[
                 {
                     "role": "system", 
-                    "content": prompt_system
-                },
-                {
-                    "role": "user", 
                     "content": prompt
                 }
             ],
