@@ -67,14 +67,14 @@ TODO
 
 
 - how it differentiates between request verification and response verification
-- how it enforces rules like:
-“This origin must not return PII”
-“This origin may only call whitelisted APIs”
-“This origin must not expose secrets or internal identifiers”
-how you conceptually distinguish between ALLOW, ALERT, and BLOC
+how you conceptually distinguish between ALLOW, ALERT, and BLOCK
 
 
 ## Consumo de la API
+
+### Casos de Prueba
+
+1. A benign operation → ALLOW:
 
 - Request:
 ```sh
@@ -117,21 +117,57 @@ curl -L -X POST http://127.0.0.1:8000/api/v1/policy/validation/ \
   "confidence_score": 1.0
 }
 ```
+2. A response containing PII → BLOCK
+TODO
 
+3. A request to a non-whitelisted API → BLOCK
+TODO
+
+4. An ambiguous or borderline case → ALERT
+TODO
+
+5. A malformed or contradictory policy → ALERT
+TODO
+
+6. An adversarial case (e.g., obfuscated sensitive data) → ALERT
+TODO
+
+7. Get Policies
+- Request:
+```sh
+curl -L -X GET http://127.0.0.1:8000/api/v1/policy/origin/agent_001 
+```
+
+- Response:
+```json
+[
+  "allow: origin_001",
+  "block: origin_002"
+]
+```
+
+8. Get Policies Safety Review
+- Request:
+```sh
+curl -L -X GET http://127.0.0.1:8000/api/v1/policy/origin/agent_001/safety_review
+```
+
+- Response:
+TODO
+```json
+[]
+```
+
+9. Health:
 
 ```sh
 curl http://127.0.0.1:8000/health
 ```
 
-TODO:
-handle low-confidence decisions
-decide when to map behavior to ALERT vs BLOCK
-log and audit decisions at the origin leve
-add non-LLM hard checks for known-bad patterns 
 
-a benign operation → ALLOW
-a response containing PII → BLOCK
-a request to a non-whitelisted API → BLOCK
-an ambiguous or borderline case → ALERT
-a malformed or contradictory policy → ALERT
-an adversarial case (e.g., obfuscated sensitive data) → ALERT
+
+
+TODO:
+
+log and audit decisions at the origin level
+add non-LLM hard checks for known-bad patterns 

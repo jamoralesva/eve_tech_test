@@ -7,6 +7,9 @@ class Settings(BaseSettings):
     MODEL_NAME: str = "llama3.2:3b"
     LOW_CONFIDENCE_THRESHOLD_ALLOW: float = 0.5
     LOW_CONFIDENCE_THRESHOLD_BLOCK: float = 0.2
+
+    PATH_POLICY_REPOSITORY: str = "./dummy_policies.json"
+    PATH_WHITELISTED_REPOSITORY: str = "./dummy_whitelisted_resources.json"
     
     # Configuración de base de datos u otras variables
     # DATABASE_URL: str
