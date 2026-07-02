@@ -1,5 +1,6 @@
 from fastapi import APIRouter, status
 
+from src.core.policy_validator.low_confidense_score_handler import LowConfidenceScoreHandler
 from src.core.policy_validator.pii_validator_service import PIIValidatorService
 from src.core.policy_validator.policy_coherence_validator_service import CoherenceValidatorService
 from src.core.policy_validator.prompt_injection_validator_service import PromptInjectionValidatorService
@@ -21,7 +22,11 @@ orchestrator = Orchestrator(
         PIIValidatorService(model_name=settings.MODEL_NAME),
         CoherenceValidatorService(model_name=settings.MODEL_NAME),
         PromptInjectionValidatorService(model_name=settings.MODEL_NAME)
-    ]
+    ],
+    low_confidense_score_handler=LowConfidenceScoreHandler(
+        threshold_allow=settings.LOW_CONFIDENCE_THRESHOLD_ALLOW,
+        threshold_block=settings.LOW_CONFIDENCE_THRESHOLD_BLOCK
+    )
 )
 
 @router.post("/", response_model=PolicyValidationResponse, status_code=status.HTTP_200_OK)

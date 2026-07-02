@@ -122,3 +122,16 @@ curl -L -X POST http://127.0.0.1:8000/api/v1/policy/validation/ \
 ```sh
 curl http://127.0.0.1:8000/health
 ```
+
+TODO:
+handle low-confidence decisions
+decide when to map behavior to ALERT vs BLOCK
+log and audit decisions at the origin leve
+add non-LLM hard checks for known-bad patterns 
+
+a benign operation → ALLOW
+a response containing PII → BLOCK
+a request to a non-whitelisted API → BLOCK
+an ambiguous or borderline case → ALERT
+a malformed or contradictory policy → ALERT
+an adversarial case (e.g., obfuscated sensitive data) → ALERT

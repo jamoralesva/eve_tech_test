@@ -1,6 +1,4 @@
-import asyncio
-
-from src.core.policy_validator.validator_base import PartialValidation, ValidatorBase
+from src.core.policy_validator.validator_base import OllamaValidatorBase
 
 
 # PII prompts
@@ -18,10 +16,8 @@ Estos campos NO deberían ir en los siguientes campos:
 Si se encuentra algún campo PII en los campos mencionados, decision debe ser BLOCK, justification debe explicar qué campo PII se encontró.
 """
 
-class PIIValidatorService(ValidatorBase):
-    def __init__(self, model_name: str):
-        self.model_name = model_name
+# TODO: agregar validación de PII usando regex o librerías especializadas, en lugar de solo simular la validación
 
-    async def validate(self, prompt: str) -> PartialValidation:
-        await asyncio.sleep(0.01) 
-        return PartialValidation(decision="ALLOW", confidence_score=1.0, justification="No PII found")
+class PIIValidatorService(OllamaValidatorBase):
+    def __init__(self, model_name: str):
+        super().__init__(model_name=model_name, prompt_specific_instructions=prompt_specific_instructions)

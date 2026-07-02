@@ -1,15 +1,11 @@
-import asyncio
-
-from src.core.policy_validator.validator_base import PartialValidation, ValidatorBase
-
+from src.core.policy_validator.validator_base import OllamaValidatorBase
 
 # Coherence prompts
-prompt_specific_instructions = """TODO"""
+prompt_specific_instructions = """Analiza la siguiente policy context y determina si la policy es coherente o no.
+Si la policy es incoherente, decision debe ser BLOCK, justification debe explicar qué incoherencia se encontró.
+Si la policy es coherente, decision debe ser ALLOW, justification debe explicar por qué se considera coherente.
+"""
 
-class CoherenceValidatorService(ValidatorBase):
+class CoherenceValidatorService(OllamaValidatorBase):
     def __init__(self, model_name: str):
-        self.model_name = model_name
-
-    async def validate(self, prompt: str) -> PartialValidation:
-        await asyncio.sleep(0.01) 
-        return PartialValidation(decision="ALLOW", confidence_score=1.0, justification="Prompt is coherent")
+        super().__init__(model_name=model_name, prompt_specific_instructions=prompt_specific_instructions)
