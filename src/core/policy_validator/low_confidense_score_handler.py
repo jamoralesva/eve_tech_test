@@ -1,6 +1,7 @@
 
 from string import Template
-from src.core.policy_validator.either import Either
+
+from returns.future import FutureResult
 from src.core.policy_validator.validator_base import FailedValidation, PartialValidation
 
 # Este componente maneja los casos en los que el score de confianza de la validación es bajo.
@@ -18,11 +19,10 @@ class LowConfidenceScoreHandler:
                                 "Se utilizan los siguientes umbrales de confianza: " +
                                 "Threshold $threshold_allow para ALLOW y $threshold_block para BLOCK.")
         
-    def change_to_alert(self, 
+    def _change_to_alert(self, 
             partial_validation_result: PartialValidation
-            ) -> Either[FailedValidation, PartialValidation]:
-        return Either.is_right(
-                PartialValidation(
+            ) -> PartialValidation:
+        return PartialValidation(
                     decision="ALERT",
                     confidence_score=1.0,
                     justification=self.message.substitute(
@@ -32,23 +32,21 @@ class LowConfidenceScoreHandler:
                         threshold_allow=self.threshold_allow,
                         threshold_block=self.threshold_block
                     )
-                )
             )
 
     def handle(
             self, 
-            validation_result: Either[FailedValidation, PartialValidation]
-        ) -> Either[FailedValidation, PartialValidation]:
-        if validation_result.is_right():
-            # Regla:
-            v = validation_result.value
-            if (v.decision == "ALLOW" and 
-                v.confidence_score < self.threshold_allow):
-                # Si la decisión es ALLOW pero el score de confianza es bajo, se considera ALERT
-                return self.change_to_alert(validation_result)
-            elif (v.decision == "BLOCK" and
-                   v.confidence_score < self.threshold_block):
-                # Si la decisión es BLOCK pero el score de confianza es muy bajo, se considera ALERT
-                return self.change_to_alert(validation_result)
-        # propagar sin cambios
-        return validation_result
+            validation_result: PartialValidation
+        ) -> FutureResult[FailedValidation, PartialValidation]:
+        
+        low_allow = (validation_result.decision == "ALLOW" and 
+                     validation_result.confidence_score < self.threshold_allow)
+        
+        low_block = (validation_result.decision == "BLOCK" and 
+                     validation_result.confidence_score < self.threshold_block)
+
+        if low_allow or low_block:
+            transformado = self._change_to_alert(validation_result)
+            return FutureResult.from_value(transformado)
+        
+        return FutureResult.from_value(validation_result)

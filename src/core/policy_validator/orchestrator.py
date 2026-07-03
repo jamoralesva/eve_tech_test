@@ -1,7 +1,13 @@
 import asyncio
+from typing import List
+from returns.methods import partition
+from returns.unsafe import unsafe_perform_io
+
+from returns.future import FutureResult
+from returns.io import IOResult
 
 from src.core.policy_validator.low_confidense_score_handler import LowConfidenceScoreHandler
-from src.core.policy_validator.validator_base import ValidatorBase
+from src.core.policy_validator.validator_base import FailedValidation, PartialValidation, ValidatorBase
 from src.schemas.policy_context import LLMValidationResponse, PolicyValidationRequest
 
 class Orchestrator:
@@ -14,41 +20,55 @@ class Orchestrator:
         self.validators = validators
         self.low_confidense_score_handler = low_confidense_score_handler
 
-    async def scatter_gather(self, policy_context: PolicyValidationRequest) -> list[LLMValidationResponse]:
+
+    async def validate(self, policy_context: PolicyValidationRequest) -> LLMValidationResponse:
+        
         # Scatter
         # TODO: en este momento no se maneja una dependencia explicita entre las validaciones
         # En la practica podrían haber validaciones que dependan de otras
 
         policy_context_dict = policy_context.model_dump()
-        prompt = f"Policy Context: {policy_context_dict}"
-        tareas = [validator.validate(prompt) for validator in self.validators]
-        
-        resultados = await asyncio.gather(*tareas)
-        return resultados
-    
+        prompt = f"{policy_context_dict}"
 
-    async def validate(self, policy_context: PolicyValidationRequest) -> LLMValidationResponse:
-        
-        resultados = await self.scatter_gather(policy_context)
+        futures: list[FutureResult[PartialValidation, FailedValidation]] = [
+            v.validate(prompt)
+             .bind(self.low_confidense_score_handler.handle)
+            for v in self.validators
+        ]
 
-        resultados_v2 = self.low_confidense_score_handler.handle_low_confidence_scores(resultados)
-                    
-        return self.aggregate_results(resultados_v2)
+        resultados = await asyncio.gather(*futures)
 
-       
-    def aggregate_results(self, results: list[LLMValidationResponse]) -> LLMValidationResponse:
-         # Estrategia de cortocircuito / Bloqueo estricto
-        for res in results:
-            if res.is_right() and res.value.decision == "BLOCK":
-                # TODO: este método tiene la desventaja de que no se puede ver la justificación de los validadores que aprobaron el prompt, 
-                # solo se ve la justificación del validador que bloqueó.
-                return LLMValidationResponse(decision="BLOCK", confidence_score=res.confidence_score, justification=res.justification) # Bloqueo inmediato
-            elif res.is_left():
-                return LLMValidationResponse(decision="ALERT", confidence_score=1.0, justification=res.value.error_message) # Alerta inmediato por error
+        return self.combinar_resultados(resultados)
 
-         # TODO: encontrar un mejor metodo para combinar los resultados de los validadores y generar una respuesta final
-        return LLMValidationResponse(decision="ALLOW", confidence_score=1.0, justification="Todos los validadores aprobaron el prompt")
-    
+    def combinar_resultados(
+        self,
+        resultados: List[IOResult[PartialValidation, FailedValidation]]
+    ) -> LLMValidationResponse:
+
+        exitos_io, fallos_io = partition(resultados)
+        exitos: List[PartialValidation] = [unsafe_perform_io(io) for io in exitos_io]
+        fallos: List[FailedValidation] = [unsafe_perform_io(io) for io in fallos_io]
+
+        match (fallos, exitos):
+            case (v_fallidos, _) if v_fallidos:
+                justificacion = " | ".join(
+                    f"{f.error_message}, validator_id: {f.validator_id}" for f in v_fallidos
+                )
+                return LLMValidationResponse(decision="ALERT", confidence_score=1.0, justification=justificacion)
+            
+            case (_, v_exitosos) if any(v.decision == "ALERT" for v in v_exitosos):
+                alertas = [v for v in v_exitosos if v.decision == "ALERT"]
+                justificacion = " | ".join(f"{b.justification}, validator_id:{b.validator_id}" for b in alertas)
+                return LLMValidationResponse(decision="ALERT", confidence_score=1.0, justification=justificacion)
 
 
-    
+            case (_, v_exitosos) if any(v.decision == "BLOCK" for v in v_exitosos):
+                bloqueos = [v for v in v_exitosos if v.decision == "BLOCK"]
+                min_score = min(b.confidence_score for b in bloqueos)
+                justificacion = " | ".join(b.justification for b in bloqueos)
+                return LLMValidationResponse(decision="BLOCK", confidence_score=min_score, justification=justificacion)
+
+            case (_, v_exitosos):
+                avg_score = sum(v.confidence_score for v in v_exitosos) / len(v_exitosos) if v_exitosos else 1.0
+                justificacion = " | ".join(v.justification for v in v_exitosos)
+                return LLMValidationResponse(decision="ALLOW", confidence_score=avg_score, justification=justificacion)

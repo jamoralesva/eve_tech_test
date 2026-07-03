@@ -1,14 +1,7 @@
-import asyncio
+from src.core.policy_validator.validator_base import OllamaValidatorBase
+# Prompt Injection prompts
+prompt_specific_instructions = """Review the data provided by the user and check that they are not sharing secrets, passwords, or tokens."""
 
-from src.core.policy_validator.validator_base import PartialValidation, ValidatorBase
-
-class SecretsValidatorService(ValidatorBase):
-
+class SecretsValidatorService(OllamaValidatorBase):
     def __init__(self, model_name: str):
-        self.model_name = model_name
-
-    async def validate(self, prompt: str) -> PartialValidation:
-        # Aquí se ejecuta lógica determinista (ej. detect-secrets / regex)
-        # Al ser intensivo en CPU, simulamos con un paso asíncrono rápido
-        await asyncio.sleep(0.01) 
-        return PartialValidation(decision="ALLOW", confidence_score=1.0, justification="No secrets found")
+        super().__init__(model_name=model_name, prompt_specific_instructions=prompt_specific_instructions)

@@ -32,7 +32,7 @@ class LLMValidationResponse(BaseModel):
         None,
         description="Tipo de decisión tomada por el agente"
     )
-    justification: str = Field(..., min_length=3, max_length=500, description="Justificación de la decisión tomada por el agente")
+    justification: str = Field(..., min_length=3, max_length=1000, description="Justificación de la decisión tomada por el agente")
     confidence_score: float = Field(..., ge=0, le=1)
 
 class PolicyValidationResponse(PolicyContextBase):

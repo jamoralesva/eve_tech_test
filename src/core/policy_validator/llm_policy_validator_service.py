@@ -5,7 +5,7 @@ from src.core.policy_validator.validator_base import (
 
 
 # prompts
-prompt_specific_instructions = """Analiza la siguiente policy context y determina si la policy es válida o no. """
+prompt_specific_instructions = """Analyze the following policy context and determine whether the policy is valid or not."""
 
 class LLMPolicyValidatorService(OllamaValidatorBase):
     def __init__(self, model_name: str):

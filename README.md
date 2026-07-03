@@ -83,17 +83,45 @@ curl -L -X POST http://127.0.0.1:8000/api/v1/policy/validation/ \
   -d '{
     "origin_id": "agent-001",
     "policy": ["This origin must not return PII"],
-    "candidate_operation": {
-      "kind": "inbound_response",
-      "origin_id": "agent-001",
-      "context": {
-        "body": {
-          "address": "Cra 8 # 13-48",
-          "phone": "+573176455555"
+      "candidate_operation": {
+        "kind": "inbound_response",
+        "origin_id": "agent-001",
+        "resource_id": null,
+        "context": {
+          "uri": "/api/v1/telemetry/metrics",
+          "params": {
+            "page": "1",
+            "per_page": "10"
+          },
+          "body": {
+            "clients": [
+              {
+                "client_tracking_id": "9b1deb4d-3b7d-4bad-9bdd-2b0d7b3dcb6d",
+                "products": [
+                  {
+                    "sku": "PROD-8821-X",
+                    "status": "active"
+                  },
+                  {
+                    "sku": "PROD-1044-A",
+                    "status": "pending"
+                  }
+                ]
+              },
+              {
+                "client_tracking_id": "550e8400-e29b-41d4-a716-446655440000",
+                "products": []
+              }
+            ]
+          },
+          "headers": {
+            "X-Correlation-ID": "c3b07302-3cbe-413b-80df-472093e8cb14",
+            "Content-Type": "application/json"
+          }
         }
       }
     }
-  }'
+  }' | jq
 ```
 
 - Response:

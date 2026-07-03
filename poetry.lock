@@ -3385,6 +3385,25 @@ socks = ["PySocks (>=1.5.6,!=1.5.7)"]
 use-chardet-on-py3 = ["chardet (>=3.0.2,<8)"]
 
 [[package]]
+name = "returns"
+version = "0.28.0"
+description = "Make your functions return something meaningful, typed, and safe!"
+optional = false
+python-versions = "<4.0,>=3.11"
+groups = ["main"]
+files = [
+    {file = "returns-0.28.0-py3-none-any.whl", hash = "sha256:2d7e28070c3fe34d1b6f6be5598b85da83b1c8ed4e567899351dcdb7e9b74a7c"},
+    {file = "returns-0.28.0.tar.gz", hash = "sha256:0eb059d81bfd8af64c86d9286cdf19c280f5a815ee719ff838a9c20b29ce4f84"},
+]
+
+[package.dependencies]
+typing-extensions = ">=4.0,<5.0"
+
+[package.extras]
+check-laws = ["hypothesis (>=6.151,<7.0)", "pytest (>=8,<10)"]
+compatible-mypy = ["mypy (>=1.19,<2.2)"]
+
+[[package]]
 name = "rfc3339-validator"
 version = "0.1.4"
 description = "A pure python RFC3339 validator"
@@ -4395,4 +4414,4 @@ pillow = "*"
 [metadata]
 lock-version = "2.1"
 python-versions = ">=3.13,<3.14.1"
-content-hash = "a4ca73eb612d32e83c92a796db132b92f7fbe7e31681e66f73de9fe420623e00"
+content-hash = "381ea285362fc04bad7518e6b0baa9da47ea24f4374a50735517ba9f15d629a6"
