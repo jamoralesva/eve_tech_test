@@ -2,11 +2,7 @@
 
 ## Introducción
 
-TODO
-
-Este proyecto tiene un histórico en git, donde puede ver la evolución de la solución.
-
-`git log`
+En este documento se presenta la propuesta y el desarrollo de un componente de verificación de Policies basado en LLM. Este proyecto tiene un histórico en git, donde puede ver la evolución de la solución `git log`. También le puede interesar leer un mini [ADR](./ADR.md) informal en donde se postearon dudas y decisiones tomadas mientras se construía esta PoC. Dentro del código fuente hay comentarios marcados como `#TODO` donde se dejan comentarios de cosas se pueden mejorar para una siguiente iteración.
 
 ## Estructura del proyecto
 
@@ -622,9 +618,10 @@ TODO
 curl http://127.0.0.1:8000/health
 ```
 
-
-
-
 TODO:
 log and audit decisions at the origin level
 add non-LLM hard checks for known-bad patterns 
+
+## Comentarios finales
+
+Me divertí mucho haciendo este desarrollo, fue un reto bien interesante, me llevo como aprendizaje la importancia del atributo de calidad de Seguridad en este nuevo entorno de agentes de IA. De antemano agradezco la oportunidad y me encantaría recibir retroalimentación sobre las decisiones tomadas o las implementaciones.
