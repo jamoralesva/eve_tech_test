@@ -49,25 +49,131 @@ Versión de Poetry usada: `Poetry (version 2.3.2)`
 `poetry run uvicorn src.main:app --reload`
 
 
-## Documentación Arquitectura P1
+## Documentación Arquitectura
 
-TODO
+A continuación se muestra una breve descripción de la arquitectura construida para el componente de evaluación de póliticas basado en LLM. 
 
-## Arquitectura P2
+### Vista de componentes
+
+```mermaid
+graph LR
+    %% API Layer
+    subgraph API [API]
+      App[FastAPI App]
+      Router["API Router (/api/v1)"]
+      EndpointPV["Policy Validation Endpoint (/policy/validation)"]
+      EndpointP["Policy Endpoint (/policy)"]
+      EndpointW["Whitelist Endpoint (/whitelist)"]
+    end
+
+    %% Core Layer
+    subgraph Core [Core / Policy Validator]
+      Orchestrator[Orchestrator]
+      LowHandler[LowConfidenceScoreHandler]
+      Validators["Validators\n(PromptInjection, PII, Secrets, Coherence, ...)"]
+      ValidatorBase[OllamaValidatorBase / ValidatorBase]
+      Ollama[Ollama LLM client]
+    end
+
+    %% Persistence
+    subgraph Repos [Repositories]
+      PolicyRepo[PolicyRepository]
+      WhitelistRepo[WhitelistedResourcesRepository]
+    end
+
+    %% Schemas / DTOs
+    subgraph Schemas [Schemas]
+      PolicyContext["PolicyValidationRequest / PolicyValidationResponse"]
+    end
+
+    %% Relationships
+    App --> Router
+    Router --> EndpointPV
+    Router --> EndpointP
+    Router --> EndpointW
+
+    EndpointPV -->|uses| Orchestrator
+    Orchestrator -->|orchestrates| Validators
+    Orchestrator -->|uses| LowHandler
+    Validators -->|implement| ValidatorBase
+    ValidatorBase -->|invokes| Ollama
+
+    EndpointP -->|reads| PolicyRepo
+    EndpointW -->|reads| WhitelistRepo
+    EndpointPV -->|input/output| PolicyContext
+
+    %% Notes
+    classDef repos fill:#f9f,stroke:#333,stroke-width:1px;
+    class PolicyRepo,WhitelistRepo repos;
+```
+
+### Vista de comportamiento (secuencia)
+
+```mermaid
+%% Diagrama de secuencia (Mermaid)
+sequenceDiagram
+    participant Client
+    participant FastAPI as FastAPI App
+    participant Endpoint as PolicyValidationEndpoint
+    participant Orchestrator
+    participant Validator as Validator (PromptInjection / LLM...)
+    participant Ollama as Ollama LLM
+    participant LowHandler as LowConfidenceScoreHandler
+
+    Client->>FastAPI: POST /api/v1/policy/validation
+    FastAPI->>Endpoint: policy_validation(policy_context)
+    Endpoint->>Orchestrator: await orchestrator.validate(policy_context)
+    Note right of Orchestrator: Scatter-gather validators (async)
+    Orchestrator->>Validator: validate(policy_context)  (async)
+    Validator->>Ollama: build prompt & chat(...)
+    Ollama-->>Validator: JSON (PartialValidation)
+    Validator-->>Orchestrator: PartialValidation (future)
+    Orchestrator->>LowHandler: bind(handle) for low-confidence adjustments
+    LowHandler-->>Orchestrator: adjusted PartialValidation
+    Note right of Orchestrator: gather results and combine
+    Orchestrator-->>Endpoint: LLMValidationResponse
+    Endpoint-->>Client: 200 OK + PolicyValidationResponse
+```
+
+### Descripción a alto nivel
+
+Por simplicidad la diferenciación entre request y responses se hace a través de una bandera en el request. Eso simplificó el desarrollo del componente actual, pero transalada la complejidad de identificar el tipo operación (inbound response, outbound request) al componente que invoca al validador de póliticas.
+
+El resultado de la decisión se divide en tres opciones: 
+- `ALLOW`: La policy es consistente con las operación que se desea ejecutar, con un `confidense_score` aceptable (esta por encima de umbrales definidos por configuración). 
+- `BLOCK`: La operación candidata viola alguna policy especificada para el origen, con un `confidense_score` aceptable.
+- `ALERT`: Cualquier decisión que represente un riesgo identicado (algún tipo de prompt-injection) o el LLM tiene un puntaje de confianza debajo de los umbrales impuestos, son transformados directamente en alertas para facilitar su monitoreo y reducir el riesgo de falsos positivos/negativos. Para mas información ver el código de: `src/core/policy_validator/low_confidense_score_handler.py`
+
+### Arquitectura de Referencia
+
+El componente `policy_validator` se divide en sub-componentes (`Validator`) que tienen la tarea de validar una dimensión de seguridad. El objetivo es que la tarea de cada `Validator` sea lo mas independiente posible para maximizar el rendimiento. En terminos generales, un orquestador envia los datos de entrada a cada uno de los `Validator`, estos individualmente tienen lógica personalizada para extraer y procesar los datos estructurados que se pasan a través del request, prompts especificos e incluso pueden usar modelos LLM de manera independiente. 
+
+Para garantizar la independencia a nivel de ejecución se utiliza el patrón [Scatter And Gather](https://www.enterpriseintegrationpatterns.com/patterns/messaging/BroadcastAggregate.html), de esta manera se pueden hacer invocaciones en paralelo para reducir la latencia (atributo de calidad critíco para este tipo de componentes).
+
+
 
 ### Invocación desde el componente principal (EVE Guard)
-TODO
+
+El componente principal debe invocar el validador de politicas a través de una API REST. Para ello debe proporcionar los siguientes datos:
+- `origin_id`: identificador del agente, tool, app de origen que desea comunicarse o acceder a un recurso de alto valor.
+- `policy`: puede ser una lista de politicas que aplican al mismo origen.
+- `candidate_operation`: estructura de datos que proveé una descripción de la operación agnostica a la tecnologia. (API/MCP).
+
+Se mantiene esta estructura siguiendo los requisitos del contrato solicitados por el equipo de negocio, sin embargo con el fin de simplificar el uso del componente, se puede reducir a solo dos campos: ``origin_id` y `candidate_operation`, las politicas pueden recuperarse automaticamente desde un repositorio desde el componente actual.
 
 ### Uso origin → policy mapping 
-TODO
+
+El mapeo de `origin` a una lista `policy` se hace a través de un endpoint expuesto por este componente/servicio. Este mapeo mantiene la simplicidad conceptual prefieriendo alta redundancia de politicas a favor de una implementación mas sencilla. Sin embargo en el momento en que la solución requiera escalar en número de origenes, la gestión de las politicas puede volverse altamente complejo. Se recomienda migrar a un sistema basado en roles o idealmente en relaciones entre origenes y destinos/recursos.
 
 ### Construcción de Prompts
-TODO
 
+El proceso de construcción de prompts fue iterativo: inicialmente se construyó un componente monolitico que se fue desagregando en diferentes servicios (`validators`) esto permitió cierta flexibilidad a la hora de ir adecuando los prompts a medida que se iban ejecutando los casos de prueba solicitados. 
 
+Inicialmente se hicieron los prompts en español, sin embargo los modelos pequeños como Llama3.9:3B tienen mejor desempeño cuando las instrucciones son escritas en ingles, por lo que paulatinamente se fueron migrando los prompts de cada uno de los componentes. 
 
-- how it differentiates between request verification and response verification
-how you conceptually distinguish between ALLOW, ALERT, and BLOCK
+Para mejorar la calidad de los prompts, se uso metaprompting, es decir, con el apoyo de un LLM avanzado (en este caso Gemini) se le pedía que reescribiera los prompts para alcanzar el comportamiento deseado en el modelo Llama3.9:3B, con muy buenos resultados.
+
+Una de las dificultades a la hora de tener componentes semi-independientes cuyas respuestas se agregan para tener una respuesta unificada es que un cambio o actualización en un componente afectaba la respuesta global. Esto se mitigó haciendo pruebas regresivas constantemente. El mayor desgaste fue hacer las pruebas manual, en una próxima iteración se recomienda crear algún tipo de script que ejecute continuamente el conjunto de pruebas regresivas.
 
 
 ## Consumo de la API
@@ -520,6 +626,5 @@ curl http://127.0.0.1:8000/health
 
 
 TODO:
-
 log and audit decisions at the origin level
 add non-LLM hard checks for known-bad patterns 

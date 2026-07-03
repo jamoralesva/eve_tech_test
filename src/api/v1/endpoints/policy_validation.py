@@ -25,11 +25,11 @@ whitelisted_resources_repo.bulk_whitelisted_resources(path=settings.PATH_WHITELI
 
 orchestrator = Orchestrator(
     validators=[
-        #SecretsValidatorService(model_name=settings.MODEL_NAME),
-        #PIIValidatorService(model_name=settings.MODEL_NAME),
-        #CoherenceValidatorService(model_name=settings.MODEL_NAME),
+        SecretsValidatorService(model_name=settings.MODEL_NAME),
+        PIIValidatorService(model_name=settings.MODEL_NAME),
+        CoherenceValidatorService(model_name=settings.MODEL_NAME),
         PromptInjectionValidatorService(model_name=settings.MODEL_NAME),
-        #WhitelistedPolicyValidatorService(model_name=settings.MODEL_NAME, whitelisted_resources_repo=whitelisted_resources_repo)
+        WhitelistedPolicyValidatorService(model_name=settings.MODEL_NAME, whitelisted_resources_repo=whitelisted_resources_repo)
     ],
     low_confidense_score_handler=LowConfidenceScoreHandler(
         threshold_allow=settings.LOW_CONFIDENCE_THRESHOLD_ALLOW,
