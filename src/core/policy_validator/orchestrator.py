@@ -27,11 +27,8 @@ class Orchestrator:
         # TODO: en este momento no se maneja una dependencia explicita entre las validaciones
         # En la practica podrían haber validaciones que dependan de otras
 
-        policy_context_dict = policy_context.model_dump()
-        prompt = f"{policy_context_dict}"
-
         futures: list[FutureResult[PartialValidation, FailedValidation]] = [
-            v.validate(prompt)
+            v.validate(policy_context)
              .bind(self.low_confidense_score_handler.handle)
             for v in self.validators
         ]

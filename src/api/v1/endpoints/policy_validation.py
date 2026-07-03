@@ -21,15 +21,15 @@ router = APIRouter()
 
 # TODO: Crear Factory para instanciar los validadores y el orquestador, inyectando dependencias de manera más limpia
 whitelisted_resources_repo = WhitelistedResourcesRepository()
-whitelisted_resources_repo.bulk_whitelisted_resources(path=settings.PATH_POLICY_REPOSITORY)
+whitelisted_resources_repo.bulk_whitelisted_resources(path=settings.PATH_WHITELISTED_REPOSITORY)
 
 orchestrator = Orchestrator(
     validators=[
-        SecretsValidatorService(model_name=settings.MODEL_NAME),
-        PIIValidatorService(model_name=settings.MODEL_NAME),
-        CoherenceValidatorService(model_name=settings.MODEL_NAME),
+        #SecretsValidatorService(model_name=settings.MODEL_NAME),
+        #PIIValidatorService(model_name=settings.MODEL_NAME),
+        #CoherenceValidatorService(model_name=settings.MODEL_NAME),
         PromptInjectionValidatorService(model_name=settings.MODEL_NAME),
-        WhitelistedPolicyValidatorService(model_name=settings.MODEL_NAME, whitelisted_resources_repo=whitelisted_resources_repo)
+        #WhitelistedPolicyValidatorService(model_name=settings.MODEL_NAME, whitelisted_resources_repo=whitelisted_resources_repo)
     ],
     low_confidense_score_handler=LowConfidenceScoreHandler(
         threshold_allow=settings.LOW_CONFIDENCE_THRESHOLD_ALLOW,

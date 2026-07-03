@@ -1,13 +1,10 @@
 {
-    "agent_001": [
-         "agent_002"
-    ],
-    "agent_002": [
-        "agent_001",
-        "agent_003"
+    "agent-001": [],
+    "agent-002": [
+        "https://api.gateway.local"
        
     ],
-    "agent_003": [
+    "agent-003": [
         "agent_002"
     ]
 }
