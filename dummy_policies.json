@@ -1,0 +1,12 @@
+{
+    "agent-001": [
+         "This origin must not return PII"
+    ],
+    "agent-002": [
+        "This origin may only call whitelisted APIs"
+       
+    ],
+    "agent-003": [
+        "This origin must not expose secrets or internal identifiers"
+    ]
+}
